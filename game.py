@@ -111,7 +111,7 @@ def check_opened():
         return False
 
 
-def events():
+def events(secret):
     global click, count
     reload = pygame.Rect(138, 26, 45, 45)
 
@@ -137,6 +137,8 @@ def events():
                         if plates[i][j].x <= mx < plates[i][j].x + PLATE_SIZE and plates[i][j].y <= my <= plates[i][
                             j].y + PLATE_SIZE:
                             click += 1
+                            if click == 1:
+                                initial(secret, i, j)
                             if not plates[i][j].opened and not plates[i][j].flag:
                                 plates[i][j].opened = True
                                 if plates[i][j].amount == 0:
@@ -157,7 +159,7 @@ def events():
                 for i in range(9):
                     for plate in plates[i]:
                         if plate.x <= mx < plate.x + PLATE_SIZE and plate.y <= my <= plate.y + PLATE_SIZE:
-                            if not plate.opened and not plate.flag:
+                            if not plate.opened and not plate.flag and count > 0:
                                 plate.flag = True
                                 count -= 1
     if check_opened():
@@ -184,6 +186,15 @@ def check_flag(i, j):
                 if plates[l + i][k + j].flag:
                     flag += 1
     return flag
+
+
+def check_plate(row, col, i, j):
+    test = False
+    for l in range(-1, 2):
+        for k in range(-1, 2):
+            if l + row == i and k + col == j:
+                test = True
+    return test
 
 
 def secret_spawn():
@@ -218,14 +229,14 @@ def secret_spawn():
             plates[4][i].mine = True
 
 
-def spawn_mines2():
+def spawn_mines2(i, j):
     mines = 10
     while mines > 0:
         loc = random.randint(0, 80)
         row = loc // 9
         col = loc % 9
 
-        if check_mines(row, col) < 7 and not plates[row][col].mine:
+        if check_mines(row, col) < 7 and not plates[row][col].mine and not check_plate(row, col, i, j):
             plates[row][col].mine = True
             mines -= 1
 
@@ -247,7 +258,7 @@ def spawn_numbers():
                 plates[i][j].amount = check_mines(i, j)
 
 
-def initial(secret):
+def initial(secret, row, col):
     global plates
     plates = []
     for i in range(9):
@@ -259,7 +270,7 @@ def initial(secret):
         secret_spawn()
         spawn_numbers()
     else:
-        spawn_mines2()
+        spawn_mines2(row, col)
         spawn_numbers()
 
 
@@ -335,7 +346,7 @@ def game(secret):
     timer = 0
     click = 0
     count = 10
-    initial(secret)
+    initial(secret, 0, 0)
     while True:
         clock.tick(30)
         pygame.time.delay(60)
@@ -343,7 +354,7 @@ def game(secret):
         if click >= 1:
             timer += 1
 
-        clik = events()
+        clik = events(secret)
 
         draw_window(clik)
 
