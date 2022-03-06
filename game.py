@@ -16,15 +16,19 @@ bg = pygame.image.load("./sprites/bg.png")
 PLATE_SIZE = 32
 main_font = pygame.font.SysFont("comicsansms", 40)
 
+shrek = [pygame.image.load("./sprites/shrek.png"), pygame.image.load("./sprites/pressed_shrek.png"),
+         pygame.image.load("./sprites/died_shrek.png"), pygame.image.load("./sprites/pressed_died_shrek.png")]
+
 plates = []
 timer = 0
 click = 0
+count = 10
 
 
 class Plate:
     plate_image = [pygame.image.load("./sprites/plate.png"),
                    pygame.image.load("./sprites/flag.png")]
-    mines = pygame.image.load("./sprites/mine.png")
+    mines = [pygame.image.load("./sprites/mine.png"), pygame.image.load("./sprites/bomb_exploded.png")]
     numbers = [pygame.image.load("./sprites/opened.png")]
     for i in range(1, 7):
         numbers.append(pygame.image.load(f"./sprites/{i}.png"))
@@ -44,8 +48,10 @@ class Plate:
         elif self.flag:
             screen.blit(self.plate_image[1], (self.x, self.y))
         if self.opened:
-            if self.mine:
-                screen.blit(self.mines, (self.x, self.y))
+            if self.mine and self.amount == 1:
+                screen.blit(self.mines[0], (self.x, self.y))
+            elif self.mine and self.amount == 0:
+                screen.blit(self.mines[1], (self.x, self.y))
             else:
                 screen.blit(self.numbers[self.amount], (self.x, self.y))
 
@@ -57,13 +63,21 @@ def draw_text(text, font_rect, color, surface, x, y):
     surface.blit(text_obj, text_rect)
 
 
-def draw_window():
+def draw_window(clik):
     screen.blit(bg, (0, 0))
 
     reload = pygame.Rect(138, 26, 45, 45)
-    pygame.draw.rect(screen, "red", reload)
+    screen.blit(shrek[0], (138, 26))
     time = pygame.Rect(138, 26, 45, 45)
     draw_text(str(timer // 16), main_font, "red", screen, 270, 45)
+    draw_text(str(count), main_font, "red", screen, 35, 45)
+
+    mx, my = pygame.mouse.get_pos()
+
+    if reload.collidepoint(mx, my):
+        screen.blit(shrek[1], (138, 26))
+        if clik:
+            game(False)
 
     for i in range(9):
         for plate in plates[i]:
@@ -81,6 +95,7 @@ def open_plates(i, j):
                     if plates[i + l][k + j].amount == 0:
                         open_plates(i + l, k + j)
                 if plates[i + l][k + j].mine and not plates[i + l][k + j].flag:
+                    plates[i + l][k + j].amount = 0
                     death()
 
 
@@ -96,53 +111,59 @@ def check_opened():
         return False
 
 
-def events(event):
-    global click
+def events():
+    global click, count
     reload = pygame.Rect(138, 26, 45, 45)
 
     mx, my = pygame.mouse.get_pos()
 
-    if event.type == pygame.QUIT:
-        pygame.quit()
-        sys.exit()
-    if event.type == pygame.KEYDOWN:
-        if event.key == pygame.K_ESCAPE:
+    clik = False
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-        if event.key == pygame.K_p:
-            game(True)
-    if event.type == pygame.MOUSEBUTTONDOWN:
-
-        if event.button == 1:
-            for i in range(9):
-                for j in range(9):
-                    if plates[i][j].x <= mx < plates[i][j].x + PLATE_SIZE and plates[i][j].y <= my <= plates[i][
-                        j].y + PLATE_SIZE:
-                        click += 1
-                        if not plates[i][j].opened and not plates[i][j].flag:
-                            plates[i][j].opened = True
-                            if plates[i][j].amount == 0:
-                                open_plates(i, j)
-                        elif plates[i][j].flag:
-                            plates[i][j].flag = False
-                        if plates[i][j].opened:
-                            if plates[i][j].mine:
-                                death()
-                            else:
-                                if check_mines(i, j) == 0 or check_flag(i, j) >= plates[i][j].amount:
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+            if event.key == pygame.K_p:
+                game(True)
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                clik = True
+                for i in range(9):
+                    for j in range(9):
+                        if plates[i][j].x <= mx < plates[i][j].x + PLATE_SIZE and plates[i][j].y <= my <= plates[i][
+                            j].y + PLATE_SIZE:
+                            click += 1
+                            if not plates[i][j].opened and not plates[i][j].flag:
+                                plates[i][j].opened = True
+                                if plates[i][j].amount == 0:
                                     open_plates(i, j)
-            if reload.collidepoint((mx, my)):
-                game(False)
-        elif event.button == 3:
-            for i in range(9):
-                for plate in plates[i]:
-                    if plate.x <= mx < plate.x + PLATE_SIZE and plate.y <= my <= plate.y + PLATE_SIZE:
-                        if not plate.opened and not plate.flag:
-                            plate.flag = True
-
+                            elif plates[i][j].flag:
+                                plates[i][j].flag = False
+                                count += 1
+                            if plates[i][j].opened:
+                                if plates[i][j].mine:
+                                    plates[i][j].amount = 0
+                                    death()
+                                else:
+                                    if check_mines(i, j) == 0 or check_flag(i, j) >= plates[i][j].amount:
+                                        open_plates(i, j)
+                # if reload.collidepoint((mx, my)):
+                #     game(False)
+            elif event.button == 3:
+                for i in range(9):
+                    for plate in plates[i]:
+                        if plate.x <= mx < plate.x + PLATE_SIZE and plate.y <= my <= plate.y + PLATE_SIZE:
+                            if not plate.opened and not plate.flag:
+                                plate.flag = True
+                                count -= 1
     if check_opened():
-        draw_window()
+        draw_window(clik)
         win()
+    return clik
 
 
 def check_mines(i, j):
@@ -200,7 +221,7 @@ def secret_spawn():
 def spawn_mines2():
     mines = 10
     while mines > 0:
-        loc = random.randint(0, 81)
+        loc = random.randint(0, 80)
         row = loc // 9
         col = loc % 9
 
@@ -222,7 +243,8 @@ def spawn_mines():
 def spawn_numbers():
     for i in range(9):
         for j in range(9):
-            plates[i][j].amount = check_mines(i, j)
+            if not plates[i][j].mine:
+                plates[i][j].amount = check_mines(i, j)
 
 
 def initial(secret):
@@ -241,7 +263,24 @@ def initial(secret):
         spawn_numbers()
 
 
+def standard_event(clik):
+    clik = False
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                clik = True
+    return clik
+
+
 def win():
+    clik = False
     while True:
         clock.tick(60)
         pygame.time.delay(60)
@@ -249,27 +288,22 @@ def win():
         reload = pygame.Rect(138, 26, 45, 45)
         draw_text('You win!', main_font, (255, 255, 255),
                   screen, WINDOW_SIZE[0] // 2, WINDOW_SIZE[1] // 2)
-        pygame.draw.rect(screen, "red", reload)
+        screen.blit(shrek[0], (138, 26))
 
         mx, my = pygame.mouse.get_pos()
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    if reload.collidepoint((mx, my)):
-                        game(False)
+        if reload.collidepoint(mx, my):
+            screen.blit(shrek[1], (138, 26))
+            if clik:
+                game(False)
+
+        clik = standard_event(clik)
 
         pygame.display.update()
 
 
 def death():
+    clik = False
     for i in range(9):
         for plate in plates[i]:
             if plate.mine:
@@ -279,29 +313,28 @@ def death():
         pygame.time.delay(60)
 
         reload = pygame.Rect(138, 26, 45, 45)
+        screen.blit(shrek[2], (138, 26))
 
         mx, my = pygame.mouse.get_pos()
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    if reload.collidepoint((mx, my)):
-                        game(False)
+        if reload.collidepoint(mx, my):
+            screen.blit(shrek[3], (138, 26))
+            if clik:
+                game(False)
 
-        draw_window()
+        clik = standard_event(clik)
+
+        for i in range(9):
+            for plate in plates[i]:
+                plate.draw_plate()
+        pygame.display.update()
 
 
 def game(secret):
-    global timer, click
+    global timer, click, count
     timer = 0
     click = 0
+    count = 10
     initial(secret)
     while True:
         clock.tick(30)
@@ -310,10 +343,9 @@ def game(secret):
         if click >= 1:
             timer += 1
 
-        for event in pygame.event.get():
-            events(event)
+        clik = events()
 
-        draw_window()
+        draw_window(clik)
 
 
 if __name__ == '__main__':
