@@ -5,8 +5,9 @@ from board import Board
 
 
 class Game():
-    def __init__(self, size, board_size, number_mines):
+    def __init__(self, size, board_size, number_mines, level):
         self.main_font = None
+        self.level = level
         self.click = 0
         self.board = Board(board_size, number_mines)
         self.number_mines = number_mines
@@ -56,6 +57,11 @@ class Game():
             {"shrek": [pygame.image.load("./sprites/shrek.png"), pygame.image.load("./sprites/pressed_shrek.png"),
                        pygame.image.load("./sprites/died_shrek.png"),
                        pygame.image.load("./sprites/pressed_died_shrek.png")]})
+        self.images.update(
+            {"level": [pygame.image.load("./sprites/beginner.png"), pygame.image.load("./sprites/pressed_beginner.png"),
+                       pygame.image.load("./sprites/intermediate.png"),
+                       pygame.image.load("./sprites/pressed_intermediate.png"),
+                       pygame.image.load("./sprites/expert.png"), pygame.image.load("./sprites/pressed_expert.png")]})
 
     def draw_bg(self, screen):
         screen.fill((191, 191, 191))
@@ -92,14 +98,38 @@ class Game():
 
     def draw_button(self, screen, clik):
         reload = pygame.Rect(self.WINDOW_SIZE[0] / 2 - 45 / 2, 26, 45, 45)
+        level_button = pygame.Rect(self.WINDOW_SIZE[0] / 2 - 45 - 45, 26, 45, 45)
         screen.blit(self.images["shrek"][0], (self.WINDOW_SIZE[0] / 2 - 45 / 2, 26))
+        screen.blit(self.images["level"][self.level - 1], (self.WINDOW_SIZE[0] / 2 - 45 - 45, 26))
 
         mx, my = pygame.mouse.get_pos()
 
         if reload.collidepoint(mx, my):
             screen.blit(self.images["shrek"][1], (self.WINDOW_SIZE[0] / 2 - 45 / 2, 26))
             if clik:
-                self.__init__(self.WINDOW_SIZE, self.board.getSize(), self.number_mines)
+                self.__init__(self.WINDOW_SIZE, self.board.getSize(), self.number_mines, self.level)
+
+        if level_button.collidepoint(mx, my):
+            screen.blit(self.images["level"][self.level], (self.WINDOW_SIZE[0] / 2 - 45 - 45, 26))
+            if clik:
+                self.level += 2
+                if self.level > 5:
+                    self.level = 1
+                if self.level == 1:
+                    board_size = (9, 9)
+                    bombs = 10
+                    window_size = (34 + board_size[0] * 32, 109 + board_size[1] * 32)
+                    self.__init__(window_size, board_size, bombs, self.level)
+                elif self.level == 3:
+                    board_size = (16, 16)
+                    bombs = 40
+                    window_size = (34 + board_size[0] * 32, 109 + board_size[1] * 32)
+                    self.__init__(window_size, board_size, bombs, self.level)
+                elif self.level == 5:
+                    board_size = (30, 16)
+                    bombs = 99
+                    window_size = (34 + board_size[0] * 32, 109 + board_size[1] * 32)
+                    self.__init__(window_size, board_size, bombs, self.level)
 
     def draw(self, screen, clik):
         self.draw_bg(screen)
