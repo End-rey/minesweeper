@@ -1,5 +1,5 @@
 import sys
-
+# import time
 import pygame
 from board import Board
 
@@ -9,6 +9,7 @@ class Game():
         self.main_font = None
         self.level = level
         self.click = 0
+        self.timer = 0
         self.board = Board(board_size, number_mines)
         self.number_mines = number_mines
         self.WINDOW_SIZE = size
@@ -28,6 +29,7 @@ class Game():
         # self.board.spawn_numbers()
         running = True
         while running:
+            clock.tick(60)
             self.events(screen)
 
     @staticmethod
@@ -138,6 +140,10 @@ class Game():
         self.draw_text(str(self.board.number_of_mines), self.main_font, "red", screen, 40, 45)
 
         self.draw_button(screen, clik)
+        if self.timer > 0:
+            self.timer += 1
+        self.draw_text(str(self.timer // 60), self.main_font, "red", screen, self.WINDOW_SIZE[0] - 45,
+                       45)
 
         pygame.display.flip()
 
@@ -170,6 +176,7 @@ class Game():
                                 if self.click == 1:
                                     self.board.spawn_mines(i, j)
                                     self.board.spawn_numbers()
+                                    self.timer += 1
                                 if not self.board.getPlate([i, j]).opened and not self.board.getPlate([i, j]).flag:
                                     self.board.getPlate([i, j]).opened = True
                                     if self.board.getPlate([i, j]).amount == 0:
@@ -195,7 +202,7 @@ class Game():
                                 elif plate.flag:
                                     plate.flag = False
                                     self.board.number_of_mines += 1
-            self.draw(screen, clik)
+        self.draw(screen, clik)
 
         if self.board.check_opened():
             self.draw(screen, clik)
